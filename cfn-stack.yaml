@@ -1,0 +1,90 @@
+Description: Polly TextToSpeech
+
+Parameters:
+  EnvironmentName:
+    Description: An environment name that is tagged to the resources.
+    Type: String
+    Default: Polly TextToSpeech
+  AllowedRegions:
+    Type: String
+    AllowedPattern: '.+-.+-\d(,.+-.+-\d)*'
+    Description: A comma-separated list of AWS regions
+    ConstraintDescription: must contain a comma-separated list of AWS regions. We assume regions are like us-east-1
+    Default: us-east-1
+
+Resources:
+  LambdaRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: Lab-Lambda-Role
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: ""
+            Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+                - dynamodb.amazonaws.com
+                - apigateway.amazonaws.com
+            Action:
+              - sts:AssumeRole
+
+  LambdaExecutionPolicies:
+    Type: "AWS::IAM::Policy"
+    Properties:
+      PolicyName: LambdaExecutionPolicy
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - polly:SynthesizeSpeech
+              - dynamodb:Query
+              - dynamodb:Scan
+              - dynamodb:PutItem
+              - dynamodb:UpdateItem
+              - logs:CreateLogGroup
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+              - sns:Publish
+              - s3:PutObject
+              - s3:PutObjectAcl
+              - s3:GetBucketLocation
+            Resource:
+              - "*"
+      Roles:
+        - !Ref LambdaRole
+
+  ConvertToAudioFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName: convert_to_audio
+      CodeUri: ./convert_to_audio.py
+      Handler: lambda_handler
+      Role: !GetAtt LambdaRole.Arn
+      Runtime: python3.9
+      MemorySize: 128
+      Timeout: 30
+
+  GetPostFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName: get_post
+      CodeUri: ./get_post.py
+      Handler: lambda_handler
+      Role: !GetAtt LambdaRole.Arn
+      Runtime: python3.9
+      MemorySize: 128
+      Timeout: 30
+
+  NewPostFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName: new_post
+      CodeUri: ./new_post.py
+      Handler: lambda_handler
+      Role: !GetAtt LambdaRole.Arn
+      Runtime: python3.9
+      MemorySize: 128
+      Timeout: 30
